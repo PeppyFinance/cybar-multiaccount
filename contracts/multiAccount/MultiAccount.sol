@@ -15,30 +15,30 @@ import "../interfaces/ISymmioPartyA.sol";
 import "../interfaces/IMultiAccount.sol";
 
 contract MultiAccount is
-IMultiAccount,
-Initializable,
-PausableUpgradeable,
-AccessControlUpgradeable
+    IMultiAccount,
+    Initializable,
+    PausableUpgradeable,
+    AccessControlUpgradeable
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    // Defining roles for access control
     bytes32 public constant SETTER_ROLE = keccak256("SETTER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant UNPAUSER_ROLE = keccak256("UNPAUSER_ROLE");
 
-    // State variables
     mapping(address => Account[]) public accounts; // User to their accounts mapping
     mapping(address => uint256) public indexOfAccount; // Account to its index mapping
     mapping(address => address) public owners; // Account to its owner mapping
 
-    address public accountsAdmin; // Admin address for the contract
+    address public accountsAdmin; // Admin address for the accounts
     address public symmioAddress; // Address of the Symmio platform
     uint256 public saltCounter; // Counter for generating unique addresses with create2
     bytes public accountImplementation;
 
-    mapping(address => mapping(address => mapping(bytes4 => bool))) public delegatedAccesses; // account -> target -> selector -> state
+    mapping(address => mapping(address => mapping(bytes4 => bool)))
+        public delegatedAccesses; // account -> target -> selector -> state
 
+    // Modifier to check if the sender is the owner of the account
     modifier onlyOwner(address account, address sender) {
         require(
             owners[account] == sender,
@@ -52,6 +52,12 @@ AccessControlUpgradeable
         _disableInitializers();
     }
 
+    /**
+     * @dev Initializes the contract with necessary parameters.
+     * @param admin The admin address for the accounts contracts.
+     * @param symmioAddress_ The address of the Symmio platform.
+     * @param accountImplementation_ The bytecode of the account implementation contract.
+     */
     function initialize(
         address admin,
         address symmioAddress_,
@@ -69,12 +75,54 @@ AccessControlUpgradeable
         accountImplementation = accountImplementation_;
     }
 
-    function delegateAccess(address account, address target, bytes4 selector, bool state) external onlyOwner(account, msg.sender) {
-        require(target != msg.sender && target != account, "MultiAccount: invalid target");
+    /**
+     * @dev Allows the owner of an account to delegate access to a specific function selector of a target contract.
+     * @param account The address of the account.
+     * @param target The address of the target contract.
+     * @param selector The function selector.
+     * @param state The state indicating whether access is granted or revoked.
+     */
+    function delegateAccess(
+        address account,
+        address target,
+        bytes4 selector,
+        bool state
+    ) external onlyOwner(account, msg.sender) {
+        require(
+            target != msg.sender && target != account,
+            "MultiAccount: invalid target"
+        );
         emit DelegateAccess(account, target, selector, state);
         delegatedAccesses[account][target][selector] = state;
     }
 
+    /**
+     * @dev Allows the owner of an account to delegate access to a single target contract and multiple function selectors.
+     * @param account The address of the account.
+     * @param target The address of the target contract.
+     * @param selector An array of function selectors.
+     * @param state The state indicating whether access is granted or revoked.
+     */
+    function delegateAccesses(
+        address account,
+        address target,
+        bytes4[] memory selector,
+        bool state
+    ) external onlyOwner(account, msg.sender) {
+        require(
+            target != msg.sender && target != account,
+            "MultiAccount: invalid target"
+        );
+        for (uint256 i = selector.length; i != 0; i--) {
+            delegatedAccesses[account][target][selector[i - 1]] = state;
+        }
+        emit DelegateAccesses(account, target, selector, state);
+    }
+
+    /**
+     * @dev Sets the implementation contract for the account.
+     * @param accountImplementation_ The bytecodes of the new implementation contract.
+     */
     function setAccountImplementation(
         bytes memory accountImplementation_
     ) external onlyRole(SETTER_ROLE) {
@@ -85,11 +133,19 @@ AccessControlUpgradeable
         accountImplementation = accountImplementation_;
     }
 
+    /**
+     * @dev Sets the address of the Symmio platform.
+     * @param addr The address of the Symmio platform.
+     */
     function setSymmioAddress(address addr) external onlyRole(SETTER_ROLE) {
         emit SetSymmioAddress(symmioAddress, addr);
         symmioAddress = addr;
     }
 
+    /**
+     * @dev Internal function to deploy a new party A account contract.
+     * @return account The address of the newly deployed account contract.
+     */
     function _deployPartyA() internal returns (address account) {
         bytes32 salt = keccak256(
             abi.encodePacked("MultiAccount_", saltCounter)
@@ -104,6 +160,12 @@ AccessControlUpgradeable
         return account;
     }
 
+    /**
+     * @dev Internal function to deploy a contract with create2.
+     * @param bytecode The bytecode of the contract to be deployed.
+     * @param salt The salt used for contract deployment.
+     * @return contractAddress The address of the deployed contract.
+     */
     function _deployContract(
         bytes memory bytecode,
         bytes32 salt
@@ -121,16 +183,26 @@ AccessControlUpgradeable
         return contractAddress;
     }
 
+    /**
+     * @dev Pauses the contract, preventing execution of transactions.
+     */
     function pause() external onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
+    /**
+     * @dev Unpauses the contract, allowing execution of transactions.
+     */
     function unpause() external onlyRole(UNPAUSER_ROLE) {
         _unpause();
     }
 
     //////////////////////////////// Account Management ////////////////////////////////////
 
+    /**
+     * @dev Adds a new account for the caller with the specified name.
+     * @param name The name of the new account.
+     */
     function addAccount(string memory name) external whenNotPaused {
         address account = _deployPartyA();
         indexOfAccount[account] = accounts[msg.sender].length;
@@ -139,6 +211,11 @@ AccessControlUpgradeable
         emit AddAccount(msg.sender, account, name);
     }
 
+    /**
+     * @dev Edits the name of the specified account.
+     * @param accountAddress The address of the account to edit.
+     * @param name The new name for the account.
+     */
     function editAccountName(
         address accountAddress,
         string memory name
@@ -148,6 +225,11 @@ AccessControlUpgradeable
         emit EditAccountName(msg.sender, accountAddress, name);
     }
 
+    /**
+     * @dev Deposits funds into the specified account.
+     * @param account The address of the account to deposit funds into.
+     * @param amount The amount of funds to deposit.
+     */
     function depositForAccount(
         address account,
         uint256 amount
@@ -163,6 +245,11 @@ AccessControlUpgradeable
         emit DepositForAccount(msg.sender, account, amount);
     }
 
+    /**
+     * @dev Deposits funds into the specified account and allocates them.
+     * @param account The address of the account to deposit and allocate funds.
+     * @param amount The amount of funds to deposit and allocate.
+     */
     function depositAndAllocateForAccount(
         address account,
         uint256 amount
@@ -186,6 +273,11 @@ AccessControlUpgradeable
         emit AllocateForAccount(msg.sender, account, amountWith18Decimals);
     }
 
+    /**
+     * @dev Withdraws funds from the specified account.
+     * @param account The address of the account to withdraw funds from.
+     * @param amount The amount of funds to withdraw.
+     */
     function withdrawFromAccount(
         address account,
         uint256 amount
@@ -206,6 +298,11 @@ AccessControlUpgradeable
         require(_success, "MultiAccount: Error occurred");
     }
 
+    /**
+     * @dev Executes a series of calls on behalf of the specified account.
+     * @param account The address of the account to execute the calls on behalf of.
+     * @param _callDatas An array of call data to execute.
+     */
     function _call(
         address account,
         bytes[] memory _callDatas
@@ -214,12 +311,18 @@ AccessControlUpgradeable
         for (uint8 i; i < _callDatas.length; i++) {
             bytes memory _callData = _callDatas[i];
             if (!isOwner) {
-                require(_callData.length >= 4, "MultiAccount: Invalid call data");
+                require(
+                    _callData.length >= 4,
+                    "MultiAccount: Invalid call data"
+                );
                 bytes4 functionSelector;
                 assembly {
                     functionSelector := mload(add(_callData, 0x20))
                 }
-                require(delegatedAccesses[account][msg.sender][functionSelector], "MultiAccount: Unauthorized access");
+                require(
+                    delegatedAccesses[account][msg.sender][functionSelector],
+                    "MultiAccount: Unauthorized access"
+                );
             }
             innerCall(account, _callData);
         }
@@ -227,10 +330,22 @@ AccessControlUpgradeable
 
     //////////////////////////////// VIEWS ////////////////////////////////////
 
+    /**
+     * @dev Returns the number of accounts belonging to the specified user.
+     * @param user The address of the user.
+     * @return The number of accounts.
+     */
     function getAccountsLength(address user) external view returns (uint256) {
         return accounts[user].length;
     }
 
+    /**
+     * @dev Returns an array of accounts belonging to the specified user.
+     * @param user The address of the user.
+     * @param start The index to start retrieving accounts from.
+     * @param size The maximum number of accounts to retrieve.
+     * @return An array of Account structures.
+     */
     function getAccounts(
         address user,
         uint256 start,
