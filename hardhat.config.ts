@@ -48,10 +48,10 @@ const config: HardhatUserConfig = {
       allowUnlimitedContractSize: false,
       accounts: privateKeyList,
     },
-    fantom: {
-      url: 'https://1rpc.io/ftm',
-      accounts: privateKeyList,
-    },
+    // fantom: {
+    //   url: 'https://1rpc.io/ftm',
+    //   accounts: privateKeyList,
+    // },
     bnb: {
       url: 'https://1rpc.io/bnb',
       accounts: [privateKey],
@@ -81,16 +81,20 @@ const config: HardhatUserConfig = {
       url: 'https://1rpc.io/mantle',
       accounts: [privateKey],
     },
+    'iota-evm': {
+      url: 'https://json-rpc.evm.iotaledger.net',
+    },
   },
   etherscan: {
     apiKey: {
       mantle: mantleAPIKey,
-      fantom: ftmAPIKey,
-      bnb: bnbApiKey,
+      // fantom: ftmAPIKey,
+      // bnb: bnbApiKey,
       base: baseApiKey,
       polygon: polygonApiKey,
       zkEvm: zkEvmApiKey,
       opbnb: opBnbApiKey,
+      'iota-evm': 'empty',
     },
     customChains: [
       {
@@ -123,6 +127,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: `https://api-opbnb.bscscan.com/api?apikey=${opBnbApiKey}`,
           browserURL: 'https://opbnb.bscscan.com',
+        },
+      },
+      {
+        network: 'iota-evm',
+        chainId: 8822,
+        urls: {
+          apiURL: 'https://explorer.evm.iota.org/api',
+          browserURL: 'https://explorer.evm.iota.org',
         },
       },
     ],
