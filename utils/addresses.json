@@ -1,7 +1,7 @@
 {
-  "symmioAddress": "0x91Cf2D8Ed503EC52768999aA6D8DBeA6e52dbe43",
-  "collateralAddress": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-  "multiAccountAddress": "0xdfC2a55a44aD3d3aAbFe8D1C498Ea923c6D39526",
-  "partyBAddress": "0x9206D9d8F7F1B212A4183827D20De32AF3A23c59",
-  "MulticallAddress": "0x66EC85c6d1971Ea15472754F733fA3F956a0Ec30"
+  "symmioAddress": "0xc258535aaF6ad3cEd5D2E03e2B66C35262488309",
+  "collateralAddress": "0xC1B8045A6ef2934Cf0f78B0dbD489969Fa9Be7E4",
+  "multiAccountAddress": "",
+  "partyBAddress": "",
+  "MulticallAddress": ""
 }

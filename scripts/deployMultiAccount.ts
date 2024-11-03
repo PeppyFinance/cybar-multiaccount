@@ -3,18 +3,19 @@ import { Addresses, loadAddresses, saveAddresses } from '../utils/file'
 
 async function main() {
   const [deployer] = await ethers.getSigners()
-
   console.log('Deploying contracts with the account:', deployer.address)
+
+  const admin = process.env.ADMIN_PUBLIC_KEY_IOTAEVM
+  console.log('The admin account: ', admin)
+
   let deployedAddresses: Addresses = loadAddresses()
   console.log('Deployed Addresses:', deployedAddresses)
 
   const SymmioPartyA = await ethers.getContractFactory('SymmioPartyA')
 
-  // Deploy SymmioPartyB as upgradeable
   const Factory = await ethers.getContractFactory('MultiAccount')
   console.log('Factory Deployed. ')
 
-  const admin = process.env.ADMIN_PUBLIC_KEY
   const contract = await upgrades.deployProxy(
     Factory,
     [admin, deployedAddresses.symmioAddress, SymmioPartyA.bytecode],
@@ -25,7 +26,7 @@ async function main() {
     }
   )
   await contract.deployed()
-  console.log('Contract Deployed. ')
+  console.log('Contract Deployed.')
 
   const addresses = {
     proxy: contract.address,
