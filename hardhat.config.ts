@@ -4,6 +4,7 @@ import '@openzeppelin/hardhat-upgrades'
 import { config as dotenvConfig } from 'dotenv'
 import type { HardhatUserConfig } from 'hardhat/config'
 import { resolve } from 'path'
+import { Chain } from './utils/chain'
 
 //import "./tasks/deploy"
 
@@ -106,7 +107,7 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        network: 'base',
+        network: Chain.BASE,
         chainId: 8453,
         urls: {
           apiURL: `https://api.basescan.org/api?apiKey=${baseApiKey}`,
@@ -130,7 +131,7 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        network: 'iota-evm',
+        network: Chain.IOTA,
         chainId: 8822,
         urls: {
           apiURL: 'https://explorer.evm.iota.org/api',
